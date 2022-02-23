@@ -12,7 +12,6 @@
 				"-I${workspaceFolder}/",
 
 				"${workspaceFolder}/main.c",
-				"${workspaceFolder}/src/safire-utils.c",
 				"-o",
 				"${workspaceFolder}/bin/safire-utils-test.exe"
 			],

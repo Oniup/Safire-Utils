@@ -4,6 +4,12 @@
         "memory.h": "c",
         "safire-utils.h": "c",
         "stdarg.h": "c",
-        "stdlib.h": "c"
-    }
+        "stdlib.h": "c",
+        "xmemory": "c",
+        "xutility": "c",
+        "memory": "c",
+        "assert.h": "c",
+        "corecrt.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
 }
