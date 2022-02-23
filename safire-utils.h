@@ -1,4 +1,4 @@
-/* Safire utils 0.02
+/* Safire Utils 0.03
 
 To use the library, define this before including the file or 
 as a preprocessor:
@@ -21,8 +21,6 @@ what to include through the following macros:
     safire kind of needs these, so if not included you'll have to edit this file:
         SAFIRE_UTILS_STD_INCLUDES
             - includes all the std libraries that this uses
-        SAFIRE_UTILS_TYPES_IMPLEMENTATION
-            - includes all the custom types
 
     safire isn't dependent on these so it won't break the library to not include
         SAFIRE_UTILS_STRING_IMPLEMENTATION
@@ -48,7 +46,6 @@ extern "C" {
 
 #if defined(SAFIRE_UTILS_IMPLEMENTATION) || defined(SAFIRE_UTILS_IMPLEMENTATION_EXTERN)
 #  define SAFIRE_UTILS_STD_INCLUDES
-#  define SAFIRE_UTILS_TYPES_IMPLEMENTATION
 #  define SAFIRE_UTILS_STRING_IMPLEMENTATION
 #  define SAFIRE_UTILS_LIST_IMPLEMENTATION
 #  define SAFIRE_UTILS_HASH_IMPLEMENTATION
@@ -74,25 +71,9 @@ extern "C" {
 #  endif
 #  include <stdlib.h>
 #  include <memory.h>
+#  include <stdint.h>
+#  include <stdbool.h>
 #endif // SAFIRE_UTILS_STD_INCLUDES
-
-#ifdef SAFIRE_UTILS_TYPES_IMPLEMENTATION
-#  ifndef __cplusplus
-#    define bool _Bool
-#    define true 1
-#    define false 0
-#  endif
-
-typedef unsigned long long  uint64_t;
-typedef unsigned int        uint32_t;
-typedef unsigned short      uint16_t;
-typedef unsigned char       uint8_t;
-
-typedef long long           int64_t;
-typedef int                 int32_t;
-typedef short               int16_t;
-typedef char                int8_t;
-#endif // SAFIRE_UTILS_TYPES_IMPLEMENTATION
 
 #if defined(SAFIRE_UTILS_STRING_IMPLEMENTATION) 
 #  if !defined(SAFIRE_UTILS_IMPLEMENTATION) || !defined(SAFIRE_UTILS_IMPLEMENTATION_EXTERN)
@@ -103,13 +84,52 @@ typedef char                int8_t;
 #    endif
 #  endif
 
-SAFIRE_DEF char*         sfr_str(const char* _str);
-SAFIRE_DEF uint32_t      sfr_strset(char* _dest, const char* _src);
-SAFIRE_DEF void          sfr_strsetlen(char* _dest, const char* _src, uint32_t _length);
-SAFIRE_DEF uint32_t      sfr_strlen(const char* _src);
-SAFIRE_DEF bool          sfr_strcmp(const char* _str1, const char* _str2);
-SAFIRE_DEF bool          sfr_strcmplen(const char* _str1, const char* _str2, uint32_t _length);
-SAFIRE_DEF void          sfr_str_free(char** _str);
+/*!
+ * @brief allocates memory and copies over the _str to the new string
+ * @param[in] _str desired string to be copied into new string
+ * @returns (char*) a new c style string
+*/
+SAFIRE_DEF char* sfr_str(const char* _str);
+/*!
+ * @brief allocates and copies the desired string to the destination string
+ * @param[in] _src string to be copied into the destired string
+ * @param[in] _dest the desired string that will have _src message copied over to
+ * @returns (uint32_t) the length of the string that was copied over to the _dest
+*/
+SAFIRE_DEF uint32_t sfr_strset(char* _dest, const char* _src);
+/*!
+ * @brief allocates and copies the desired string to the destination string
+ * @param[in] _src string to be copied into the destired string
+ * @param[in] _dest the desired string that will have _src message copied over to
+ * @param[in] _length the length of the _src string, optimisation over 'sfr_strset' if known length
+*/
+SAFIRE_DEF void sfr_strsetlen(char* _dest, const char* _src, uint32_t _length);
+/*!
+ * @brief returns the length of a string
+ * @param[in] _src desired string to find the length of
+ * @returns (uint32_t ) the length of the string
+*/
+SAFIRE_DEF uint32_t sfr_strlen(const char* _src);
+/*!
+ * @brief returns true if the two strings are the same
+ * @param[in] _str1 the string that will check if same as _str2
+ * @param[in] _str2 the string that will check if same as _str1
+ * @returns (bool) true if the two strings are the same
+*/
+SAFIRE_DEF bool sfr_strcmp(const char* _str1, const char* _str2);
+/*!
+ * @brief returns true if the two strings are the same
+ * @param[in] _str1 the string that will check if same as _str2
+ * @param[in] _str2 the string that will check if same as _str1
+ * @param[in] _length the length of both strings, optimisation over 'str_strcmp' if known lengths are the same
+ * @returns (bool) true if the two strings are the same
+*/
+SAFIRE_DEF bool sfr_strcmplen(const char* _str1, const char* _str2, uint32_t _length);
+/*!
+ * @brief frees the strings memory and sets the strings pointer to NULL
+ * @param[in] _src desired string to be freed
+*/
+SAFIRE_DEF void sfr_str_free(char** _str);
 
 #  if defined(SAFIRE_UTILS_INLINE)
 
@@ -304,9 +324,11 @@ void sfr_str_free(char** _str) {
 
 /*
     version history
+        0.03    (24-02-2022) removed implementation of uint32_t and replaced with the proper c includes
+                             added internal documentation for the string functions
         0.02    (23-02-2022) added inline string functionality
                              added functions for lists
                              added config through macros
-                             added some documentation to the file
+                             added some internal documentation at the beggining of the file
         0.01    (23-02-2022) git repo init
 */
