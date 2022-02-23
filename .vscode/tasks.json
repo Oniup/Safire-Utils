@@ -1,0 +1,25 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "cppbuild",
+			"label": "safire c utils build with clang",
+			"command": "C:/msys64/mingw64/bin/clang.exe",
+			"args": [
+				"-fdiagnostics-color=always",
+				"-g",
+
+				"-I${workspaceFolder}/",
+
+				"${workspaceFolder}/main.c",
+				"${workspaceFolder}/src/safire-utils.c",
+				"-o",
+				"${workspaceFolder}/bin/safire-utils-test.exe"
+			],
+			"options": { "cwd": "${workspaceFolder}" },
+			"problemMatcher": [ "$gcc" ],
+			"group": "build",
+			"detail": "compiler: C:/msys64/mingw64/bin/clang.exe"
+		}
+	]
+}

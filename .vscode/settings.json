@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "stdio.h": "c",
+        "memory.h": "c",
+        "safire-utils.h": "c",
+        "stdarg.h": "c",
+        "stdlib.h": "c"
+    }
+}
