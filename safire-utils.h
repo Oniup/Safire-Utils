@@ -33,6 +33,12 @@ what to include through the following macros:
 
         SAFIRE_UTILS_INLINE
             - TODO: uses static inline functions, if not included, then use external function definition
+        
+Note, if you want to include all the utilities but not just a couple, then add the desired macro to not include:
+    SAFIRE_UTILS_NO_STRING_IMPLEMENTATION
+    SAFIRE_UTILS_NO_LIST_IMPLEMENTATION
+    SAFIRE_UTILS_NO_HASH_IMPLEMENTATION
+    SAFIRE_UTILS_NO_CONFIG_IMPLEMENTATION
 
 
 */
@@ -49,6 +55,7 @@ extern "C" {
 #  define SAFIRE_UTILS_STRING_IMPLEMENTATION
 #  define SAFIRE_UTILS_LIST_IMPLEMENTATION
 #  define SAFIRE_UTILS_HASH_IMPLEMENTATION
+#  define SAFIRE_UTILS_CONFIG_IMPLEMENTATION
 #  if !defined(SAFIRE_UTILS_IMPLEMENTATION_EXTERN)
 #    define SAFIRE_UTILS_INLINE
 #    define SAFIRE_DEF static inline
@@ -60,14 +67,22 @@ extern "C" {
 #ifdef SAFIRE_UTILS_STD_INCLUDES
 #  ifndef SAFIRE_NO_STDIO
 #    include <stdio.h>
+#  elif
+#    define SAFIRE_UTILS_NO_CONFIG_IMPLEMENTATION
 #  endif
 #  ifndef SAFIRE_NO_ASSERT
 #    ifndef NDEBUG
 #      include <assert.h>
 #      define SAFIRE_ASSERT(_x, _message) assert(_x && _message)
+#      define SAFIRE_ASSERT2(_x, _y, _message) assert(_x && _y && _message)
+#      define SAFIRE_ASSERT3(_x, _y, _z, _message) assert(_x && _y && _z && _message)
+#      define SAFIRE_ASSERT4(_x, _y, _z, _w, _message) assert(_x && _y && _z && _w &&_message)
 #    endif
 #  else
 #    define SAFIRE_ASSERT(_x, _message)
+#    define SAFIRE_ASSERT2(_x, _y, _message)
+#    define SAFIRE_ASSERT3(_x, _y, _z, _message)
+#    define SAFIRE_ASSERT4(_x, _y, _z, _w, _message)
 #  endif
 #  include <stdlib.h>
 #  include <memory.h>
@@ -76,13 +91,7 @@ extern "C" {
 #endif // SAFIRE_UTILS_STD_INCLUDES
 
 #if defined(SAFIRE_UTILS_STRING_IMPLEMENTATION) 
-#  if !defined(SAFIRE_UTILS_IMPLEMENTATION) || !defined(SAFIRE_UTILS_IMPLEMENTATION_EXTERN)
-#    if defined(SAFIRE_UTILS_INLINE)
-#      define SAFIRE_DEF static inline 
-#    else 
-#      define SAFIRE_DEF extern
-#    endif
-#  endif
+#ifndef SAFIRE_UTILS_NO_STRING_IMPLEMENTATION
 
 /*!
  * @brief allocates memory and copies over the _str to the new string
@@ -90,6 +99,12 @@ extern "C" {
  * @returns (char*) a new c style string
 */
 SAFIRE_DEF char* sfr_str(const char* _str);
+/*!
+ * @brief allocates uninitialised memory to the char* buffer
+ * @param[in] _length the desired length that will be allocated
+ * @returns (char*) a new c style string of uninitialised memory
+*/
+SAFIRE_DEF char* sfr_stralloc(uint32_t _length);
 /*!
  * @brief allocates and copies the desired string to the destination string
  * @param[in] _src string to be copied into the destired string
@@ -131,13 +146,19 @@ SAFIRE_DEF bool sfr_strcmplen(const char* _str1, const char* _str2, uint32_t _le
 */
 SAFIRE_DEF void sfr_str_free(char** _str);
 
-#  if defined(SAFIRE_UTILS_INLINE)
+#if defined(SAFIRE_UTILS_INLINE)
 
 char* sfr_str(const char* _str) {
     uint32_t length = sfr_strlen(_str);
     char* str = (char*)malloc(sizeof(char*) * length);
     memcpy(str, _str, length);
     str[length] = '\0';
+    return str;
+}
+
+char* sfr_stralloc(uint32_t _length) {
+    char* str = (char*)malloc(sizeof(char*) * _length);
+    str[_length] = '\0';
     return str;
 }
 
@@ -200,10 +221,205 @@ void sfr_str_free(char** _str) {
     *_str = NULL;
 }
 
-#  endif //SAFIRE_UTILS_INLINE
-#endif
+#endif //SAFIRE_UTILS_INLINE
+#endif // SAFIRE_UTILS_NO_STRING_IMPLEMENTATION
+#endif // SAFIRE_UTILS_STRING_IMPLEMENTATION
+
+#if defined(SAFIRE_UTILS_CONFIG_IMPLEMENTATION) 
+#ifndef SAFIRE_UTILS_NO_CONFIG_IMPLEMENTATION
+
+typedef struct SFR_config SFR_config_t;
+
+struct SFR_config {
+    char** data;
+    uint32_t size;
+    char* path;
+};
+
+/*!
+ * @brief reads the config file and pushes the data collected to an array of strings in the config data structure
+ * @param[in] _config the data structure that will store the data collected from the config file
+ * @param[in] _path path to the config file
+*/
+SAFIRE_DEF void sfr_config_read(SFR_config_t* _config, const char* _path);
+/*!
+ * @brief reads the config files source and pushes the data collected to an array of strings and stored in the config data structure
+ * @param[in] _config the data structure that will store the data collected from the config file
+ * @param[in] _path path to the config file
+*/
+SAFIRE_DEF void sfr_config_parse(SFR_config_t* _config, const char* _source, uint32_t _length);
+/*!
+ * @brief converts the config (char* format) at the desire index to a float
+ * @param[in] _config the config data collected through the str_config_read() function
+ * @param[in] _index index that you want to convert
+ * @returns (float) the value that is being converted
+*/
+SAFIRE_DEF float sfr_config_convert_float(SFR_config_t* _config, uint32_t _index);\
+/*!
+ * @brief converts the config (char* format) at the desire index to an int
+ * @param[in] _config the config data collected through the str_config_read() function
+ * @param[in] _index index that you want to convert
+ * @returns (int) the value that is being converted
+*/
+SAFIRE_DEF int sfr_config_convert_int32(SFR_config_t* _config, uint32_t _index);
+/*!
+ * @brief converts the config (char* format) at the desire index to a 64 bit int
+ * @param[in] _config the config data collected through the str_config_read() function
+ * @param[in] _index index that you want to convert
+ * @returns (long long) the value that is being converted
+*/
+SAFIRE_DEF long long sfr_config_convert_int64(SFR_config_t* _config, uint32_t _index);
+/*!
+ * @brief converts the config (char* format) at the desire index to an unsigned int 
+ * @param[in] _config the config data collected through the str_config_read() function
+ * @param[in] _index index that you want to convert
+ * @returns (unsigned int) the value that is being converted
+*/
+SAFIRE_DEF uint32_t sfr_config_convert_uint32(SFR_config_t* _config, uint32_t _index);
+/*!
+ * @brief converts the config (char* format) at the desire index to an unsigned long long
+ * @param[in] _config the config data collected through the str_config_read() function
+ * @param[in] _index index that you want to convert
+ * @returns (unsigned long long) the value that is being converted
+*/
+SAFIRE_DEF uint64_t sfr_config_convert_uint64(SFR_config_t* _config, uint32_t _index);
+/*!
+ * @brief converts the config (char* format) at the desire index to a float
+ * @param[in] _config the config data collected through the str_config_read() function
+ * @param[in] _element name of the element that is going to be converted
+ * @returns (float) the value that is being converted
+*/
+SAFIRE_DEF float sfr_config_convert_name_float(SFR_config_t* _config, const char* _element);
+/*!
+ * @brief converts the config (char* format) at the desire index to an int
+ * @param[in] _config the config data collected through the str_config_read() function
+ * @param[in] _element name of the element that is going to be converted
+ * @returns (int) the value that is being converted
+*/
+SAFIRE_DEF int sfr_config_convert_name_int32(SFR_config_t* _config, const char* _element);
+/*!
+ * @brief converts the config (char* format) at the desire index to a long long
+ * @param[in] _config the config data collected through the str_config_read() function
+ * @param[in] _element name of the element that is going to be converted
+ * @returns (long long) the value that is being converted
+*/
+SAFIRE_DEF long long sfr_config_convert_name_int64(SFR_config_t* _config, const char _element);
+/*!
+ * @brief converts the config (char* format) at the desire index to an unsigned long long
+ * @param[in] _config the config data collected through the str_config_read() function
+ * @param[in] _element name of the element that is going to be converted
+ * @returns (unsigned long long) the value that is being converted
+*/
+SAFIRE_DEF uint32_t sfr_config_convert_name_uint32(SFR_config_t* _config, const char _element);
+/*!
+ * @brief converts the config (char* format) at the desire index to an unsigned int
+ * @param[in] _config the config data collected through the str_config_read() function
+ * @param[in] _element name of the element that is going to be converted
+ * @returns (unsigned int) the value that is being converted
+*/
+SAFIRE_DEF uint64_t sfr_config_convert_name_uint64(SFR_config_t* _config, const char _element);
+/*!
+ * @brief frees the string data stored in the config data structure
+ * @param[in] _config desired config data structure to be freed
+*/
+SAFIRE_DEF void sfr_config_free(SFR_config_t* _config);
+
+#if defined(SAFIRE_UTILS_INLINE)
+
+void sfr_config_read(SFR_config_t* _config, const char* _path) {
+    SAFIRE_ASSERT(_config, "failed to read source from the config file as the config data structure is set to NULL");
+    SAFIRE_ASSERT(_config, "failed to read source from the config file as the path given is set to NULL");
+
+    // getting the source
+    FILE* file = fopen(_path, "r");
+    SAFIRE_ASSERT2(file, _path, "failed to read file as the file doesn't exist");
+    fseek(file, 0, SEEK_END);
+    uint32_t length = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    char* source = sfr_stralloc(length);
+    fread(source, length, 1, file);
+    fclose(file);
+
+    // parsing the source and filling out config data structure
+    if (_config->path != NULL) {
+        sfr_str_free(&_config->path);
+    }
+    _config->path = sfr_str(_path);
+    sfr_config_parse(_config, source, length);
+
+    sfr_str_free(&source);
+}
+
+void sfr_config_parse(SFR_config_t* _config, const char* _source, uint32_t _length) {
+    SAFIRE_ASSERT(_config, "failed to parse source as the config data structure is set to NULL");
+    SAFIRE_ASSERT(_source, "failed to parse source as the source from the config file is set to NULL");
+
+    for (uint32_t i = 0; i < _length; i++) {
+        printf("%c", _source[i]);
+    }
+}
+
+float sfr_config_convert_float(SFR_config_t* _config, uint32_t _index) {
+    return 0.0f;
+}
+
+int sfr_config_convert_int32(SFR_config_t* _config, uint32_t _index) {
+    return 0;
+}
+
+long long sfr_config_convert_int64(SFR_config_t* _config, uint32_t _index) {
+    return 0;
+}
+
+uint64_t sfr_config_convert_uint64(SFR_config_t* _config, uint32_t _index) {
+    return 0;
+}
+
+uint32_t sfr_config_convert_uint32(SFR_config_t* _config, uint32_t _index) {
+    return 0;
+}
+
+float sfr_config_convert_name_float(SFR_config_t* _config, const char* _element) {
+    return 0.0f;
+}
+
+int sfr_config_convert_name_int32(SFR_config_t* _config, const char* _element) {
+    return 0;
+}
+
+long long sfr_config_convert_name_int64(SFR_config_t* _config, const char _element) {
+    return 0;
+}
+
+uint32_t sfr_config_convert_name_uint32(SFR_config_t* _config, const char _element) {
+    return 0;
+}
+
+uint64_t sfr_config_convert_name_uint64(SFR_config_t* _config, const char _element) {
+    return 0;
+}
+
+void sfr_config_free(SFR_config_t* _config) {
+    SAFIRE_ASSERT(_config, "failed to free config data structure ");
+    if (_config->path != NULL) {
+        sfr_str_free(&_config->path);
+    }
+    if (_config->size) {
+        for (uint32_t i = 0; i < _config->size; i++) {
+            sfr_str_free(&_config->data[i]);
+        }
+        free(_config->data);
+        _config->data = NULL;
+    }
+}
+
+#endif // SAFIRE_UTILS_INLINE
+#endif // SAFIRE_UTILS_NO_CONFIG_IMPLEMENTATION
+#endif // SAFIRE_UTILS_CONFIG_IMPLEMENTATION
+
 
 #if defined(SAFIRE_UTILS_LIST_IMPLEMENTATION) 
+#ifndef SAFIRE_UTILS_NO_LIST_IMPLEMENTATION
 /*!
  * @brief allocates un-initialised memory to a buffer (list)
  * @param[in] _Ty type of the data
@@ -305,16 +521,19 @@ void sfr_str_free(char** _str) {
     _size = 0;\
 }\
 
+#endif // SAFIRE_UTILS_NO_LIST_IMPLEMENTATION
 #endif // SAFIRE_UTILS_HAS_IMPLEMENTATION
 
 #if defined(SAFIRE_UTILS_HASH_IMPLEMENTATION) 
+#ifndef SAFIRE_UTILS_NO_HASH_IMPLEMENTATION
 
-// TODO: implement hash maps
+// TODO: implement hash maps 0.20
 
 // #define SFR_HASH_create(_Tyi, _Ty, _size) {\
 //     \
 // }\
 
+#endif // SAFIRE_UTILS_NO_HASH_IMPLEMENTATION
 #endif // SAFIRE_UTILS_HASH_IMPLEMENTATION
 
 #ifdef __cplusplus
@@ -324,6 +543,10 @@ void sfr_str_free(char** _str) {
 
 /*
     version history
+        0.04    (26-02-2022) added more assert macros
+                             improved the config macros a little by adding functionality to include everything but remove the ones you don't want
+                             added and started config file reader utility (this is a early design, and is likely to be reworked later) ...
+                             added a source version for all the static inline functions, (this doesn't include the static generic functions such as the list and hash map)
         0.03    (24-02-2022) removed implementation of uint32_t and replaced with the proper c includes
                              added internal documentation for the string functions
         0.02    (23-02-2022) added inline string functionality
