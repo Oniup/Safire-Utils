@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
 void string_test() {
     char* string = sfr_str("this is a test");
     printf("string initialisation: %s\n", string);
-    sfr_strset(string, "copying another string to the original");
+    sfr_str_set(string, "copying another string to the original");
     printf("second string test: %s\n", string);
     sfr_str_free(&string);
 }
@@ -63,5 +63,6 @@ void list_test() {
 void config_test() {
     SFR_config_t config = {};
     sfr_config_read(&config, "testing/test-config-data.config");
+    sfr_config_print(&config);
     sfr_config_free(&config);
 }
