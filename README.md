@@ -54,15 +54,11 @@ safire isn't dependent on these so it won't break the library to not include
 
 ## 🔨 Project Status
 
-**safire utils is currently in a really early stage...**
+currently working on the config data structure and its functions. One that is complete, then will be working on the hash map static generic functions
 
 ## 🐜 Known Issues
 
 *currently not aware of any*
-
-## 📦 Build and Setup
-
-There is no dependencies needed, just slap it in your code and your good to go :)
 
 ## 📃 License 
 

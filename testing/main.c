@@ -10,10 +10,11 @@ void list_test();
 void config_test();
 
 int main(int argc, char* argv[]) {
-    printf("\n\n");
+    printf("\n\n======== string test ========\n");
     string_test();
-    printf("\n\n");
+    printf("\n\n========= list test =========\n");
     list_test();
+    printf("\n\n======== config test ========\n");
     config_test();
     return 0;
 }
@@ -27,14 +28,14 @@ void string_test() {
 }
 
 void list_test() {
-    uint32_t list_size = 0;
-    uint32_t* list = NULL;
-    SFR_LIST_push(uint32_t, list, list_size, 43);
-    SFR_LIST_push(uint32_t, list, list_size, 44);
-    SFR_LIST_push(uint32_t, list, list_size, 45);
-    SFR_LIST_push(uint32_t, list, list_size, 46);
+    uint32_t list_size = 5;
+    uint32_t* list = SFR_LIST_create(uint32_t, list_size);
+    for (uint32_t i = 0; i < list_size; i++) {
+        list[i] = i;
+    }
+    SFR_LIST_push(uint32_t, list, list_size, 69);
 
-    printf("first:\n");
+    printf("full dynamic array (%u):\n", list_size);
     for (uint32_t i = 0; i < list_size; i++) {
         printf("%u\n", list[i]);
     }
@@ -42,7 +43,7 @@ void list_test() {
     SFR_LIST_erase(uint32_t, list, list_size, 1);
     SFR_LIST_pop(uint32_t, list, list_size);
 
-    printf("second:\n");
+    printf("removed the 2nd element and popped the last (%u):\n", list_size);
     for (uint32_t i = 0; i < list_size; i++) {
         printf("%u\n", list[i]);
     }
@@ -51,7 +52,7 @@ void list_test() {
     uint32_t* list2 = NULL;
     SFR_LIST_copy(uint32_t, list2, list2_size, list, list_size);
 
-    printf("copied:\n");
+    printf("copied the smaller array to another array:\n");
     for (uint32_t i = 0; i < list2_size; i++) {
         printf("%u\n", list2[i]);
     }

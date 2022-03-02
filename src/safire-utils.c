@@ -74,3 +74,254 @@ void sfr_str_free(char** _str) {
 
 // config functionality
 
+void sfr_config_read(SFR_config_t* _config, const char* _path) {
+    SAFIRE_ASSERT(_config, "failed to read source from the config file as the config data structure is set to NULL");
+    SAFIRE_ASSERT(_config, "failed to read source from the config file as the path given is set to NULL");
+
+    // config settings
+    SFR_config_settings_t settings = {};
+    settings.use_names = true;
+
+    // freeing the data if needed
+    if (_config->path != NULL) {
+        sfr_str_free(&_config->path);
+    }
+    if (_config->data != NULL) {
+        if (_config->settings != NULL) {
+            settings.use_names = _config->settings->use_names;
+        } 
+        for (uint32_t i = 0; i < _config->size; i++) {
+            if (settings.use_names) {
+                sfr_str_free(&_config->data[i].name);
+            }
+            sfr_str_free(&_config->data[i].value);
+        }
+        free(_config->data);
+        _config->data = NULL;
+        _config->size = 0;
+    }
+
+    // getting the source
+    FILE* file = fopen(_path, "r");
+    char line[SFR_MAX_STACK_LINE_LENGTH];
+    while (fgets(line, SFR_MAX_STACK_LINE_LENGTH, file)) {
+        uint32_t line_length = sfr_str_length(line);
+        bool next_line = false;
+        char push[SFR_MAX_STACK_LINE_LENGTH];
+        uint32_t j = 0;
+        
+        // setting location storage
+        uint32_t k = _config->size;
+        uint32_t dest = settings.use_names ? 0 : 1;
+        _config->size++;
+        if (k > 0) {
+            SFR_LIST_resize(SFR_config_data_t, _config->data, _config->size);
+        } else {
+            _config->data = SFR_LIST_create(SFR_config_data_t, _config->size);
+        }
+        _config->data[k].name = NULL;
+        _config->data[k].value = NULL;
+
+        // parse line
+        for (uint32_t i = 0; i < line_length; i++) {            
+            switch (line[i]) {
+            // pushing the line's data
+            case '\0': {
+                if (j > 0) {
+                    push[j] = '\0';
+                    _config->data[k].value = sfr_str(push);
+                } else {
+                    if (dest > 0) {
+                        sfr_str_free(&_config->data[k].name);
+                    }
+                    SFR_LIST_pop(SFR_config_data_t, _config->data, _config->size);
+                }
+                next_line = true;
+                break;
+            }
+            case '\n': {
+                if (j > 0) {
+                    push[j] = '\0';
+                    _config->data[k].value = sfr_str(push);
+                } else {
+                    if (dest > 0) {
+                        sfr_str_free(&_config->data[k].name);
+                    }
+                    SFR_LIST_pop(SFR_config_data_t, _config->data, _config->size);
+                }
+                next_line = true;
+                break;
+            }
+            // pushing the data's 'name' and setting dest to 'value' 
+            case ':': {
+                if (settings.use_names) {
+                    SAFIRE_ASSERT(dest == 0, "failed to parse line for some reason");
+                }
+                if (j > 0) {
+                    push[j] = '\0';
+                    _config->data[k].name = sfr_str(push);
+                }
+                dest++;
+                j = 0;
+            }
+            // skips
+            case '\r': {
+                continue;
+            }
+            case ' ': {
+                continue;
+            }
+            // comments
+            case '/': {
+                SAFIRE_ASSERT(line[i + 1] == '/', "failed to parse line - invalid syntax");
+                // checking if the name has already been pushed
+                if (dest > 0) {
+                    if (j > 0) {
+                        push[j] = '\0';
+                        _config->data[k].value = sfr_str(push);
+                    }
+                } else {
+                    // don't add this data to the config if name has not been pushed
+                    if (_config->data[k].name != NULL) {
+                        sfr_str_free(&_config->data[k].name);
+                    }
+                    if (_config->data[k].value != NULL) {
+                        sfr_str_free(&_config->data[k].value);
+                    }
+                    SFR_LIST_pop(SFR_config_data_t, _config->data, _config->size);
+                }
+                next_line = true;
+                break;
+            }
+            }
+
+            if (next_line) {
+                break;
+            } else {
+                push[j] = line[i];
+                j++;
+            }
+        }
+
+        memset(line, '\0', SFR_MAX_STACK_LINE_LENGTH);
+    }
+    
+}
+
+float sfr_config_convert_float(SFR_config_t* _config, uint32_t _index) {
+    SAFIRE_ASSERT(_config, "failed to convert data to float as the config data structure is set to null");
+    SAFIRE_ASSERT(_config->data, "failed to convert data to float as the config data is set to null");
+    SAFIRE_ASSERT(_index < _config->size, "failed to convert data to float as the index provided is greater than the config size");
+    return (float)atof(_config->data[_index].value);
+}
+
+int sfr_config_convert_int32(SFR_config_t* _config, uint32_t _index) {
+    SAFIRE_ASSERT(_config, "failed to convert data to int32 as the config data structure is set to null");
+    SAFIRE_ASSERT(_config->data, "failed to convert data to int32 as the config data is set to null");
+    SAFIRE_ASSERT(_index < _config->size, "failed to convert data to int32 as the index provided is greater than the config size");
+    return (int)atoi(_config->data[_index].value);
+}
+
+long long sfr_config_convert_int64(SFR_config_t* _config, uint32_t _index) {
+    SAFIRE_ASSERT(_config, "failed to convert data to int64 as the config data structure is set to null");
+    SAFIRE_ASSERT(_config->data, "failed to convert data to int64 as the config data is set to null");
+    SAFIRE_ASSERT(_index < _config->size, "failed to convert data to int64 as the index provided is greater than the config size");
+    return (long long)atoi(_config->data[_index].value);
+}
+
+uint32_t sfr_config_convert_uint32(SFR_config_t* _config, uint32_t _index) {
+    SAFIRE_ASSERT(_config, "failed to convert data to unsigned int32 as the config data structure is set to null");
+    SAFIRE_ASSERT(_config->data, "failed to convert data to unsigned int32 as the config data is set to null");
+    SAFIRE_ASSERT(_index < _config->size, "failed to convert data to unsigned int32 as the index provided is greater than the config size");
+    return (uint32_t)atoi(_config->data[_index].value);
+}
+
+uint64_t sfr_config_convert_uint64(SFR_config_t* _config, uint32_t _index) {
+    SAFIRE_ASSERT(_config, "failed to convert data to unsigned int64 as the config data structure is set to null");
+    SAFIRE_ASSERT(_config->data, "failed to convert data to unsigned int64 as the config data is set to null");
+    SAFIRE_ASSERT(_index < _config->size, "failed to convert data to unsigned int64 as the index provided is greater than the config size");
+    return (uint64_t)atoi(_config->data[_index].value);
+}
+
+float sfr_config_convert_name_float(SFR_config_t* _config, const char* _element) {
+    SAFIRE_ASSERT(_config, "failed to convert data to float as the config data structure is set to null");
+    for (uint32_t i = 0; i < _config->size; i++) {
+        if (sfr_str_cmp(_config->data[i].name, _element)) {
+            return sfr_config_convert_float(_config, i);
+        }
+    }
+    SAFIRE_ASSERT(!_element, "failed to find element in the config stack");
+    return 0.0f;
+}
+
+int sfr_config_convert_name_int32(SFR_config_t* _config, const char* _element) {
+    SAFIRE_ASSERT(_config, "failed to convert data to int32 as the config data structure is set to null");
+    for (uint32_t i = 0; i < _config->size; i++) {
+        if (sfr_str_cmp(_config->data[i].name, _element)) {
+            return sfr_config_convert_int32(_config, i);
+        }
+    }
+    SAFIRE_ASSERT(!_element, "failed to find element in the config stack");
+    return 0;
+}
+
+long long sfr_config_convert_name_int64(SFR_config_t* _config, const char* _element) {
+    SAFIRE_ASSERT(_config, "failed to convert data to int64 as the config data structure is set to null");
+    for (uint32_t i = 0; i < _config->size; i++) {
+        if (sfr_str_cmp(_config->data[i].name, _element)) {
+            return sfr_config_convert_int64(_config, i);
+        }
+    }
+    SAFIRE_ASSERT(!_element, "failed to find element in the config stack");
+    return 0;
+}
+
+uint32_t sfr_config_convert_name_uint32(SFR_config_t* _config, const char* _element) {
+    SAFIRE_ASSERT(_config, "failed to convert data to unsigned int32 as the config data structure is set to null");
+    for (uint32_t i = 0; i < _config->size; i++) {
+        if (sfr_str_cmp(_config->data[i].name, _element)) {
+            return sfr_config_convert_uint32(_config, i);
+        }
+    }
+    SAFIRE_ASSERT(!_element, "failed to find element in the config stack");
+    return 0;
+}
+
+uint64_t sfr_config_convert_name_uint64(SFR_config_t* _config, const char* _element) {
+    SAFIRE_ASSERT(_config, "failed to convert data to unsigned int64 as the config data structure is set to null");
+    for (uint32_t i = 0; i < _config->size; i++) {
+        if (sfr_str_cmp(_config->data[i].name, _element)) {
+            return sfr_config_convert_uint64(_config, i);
+        }
+    }
+    SAFIRE_ASSERT(!_element, "failed to find element in the config stack");
+    return 0;
+}
+
+void sfr_config_free(SFR_config_t* _config) {
+    SAFIRE_ASSERT(_config, "failed to free config data structure");
+    if (_config->path != NULL) {
+        sfr_str_free(&_config->path);
+    }
+    if (_config->data != NULL) {
+        bool free_names = true;
+        if (_config->settings != NULL) {
+            free_names = _config->settings->use_names;
+        } 
+        for (uint32_t i = 0; i < _config->size; i++) {
+            if (free_names) {
+                sfr_str_free(&_config->data[i].name);
+            }
+            sfr_str_free(&_config->data[i].value);
+        }
+        free(_config->data);
+        _config->data = NULL;
+        _config->size = 0;
+    }
+}
+
+void sfr_config_print(SFR_config_t* _config) {
+    for (uint32_t i = 0; i < _config->size; i++) {
+        printf("name: %s, value: %s\n", _config->data[i].name, _config->data[i].value);
+    }
+}

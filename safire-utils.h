@@ -1,4 +1,4 @@
-/* Safire Utils 0.03
+/* Safire Utils 0.06
 
 To use the library, define this before including the file or 
 as a preprocessor:
@@ -70,14 +70,12 @@ extern "C" {
 #  elif
 #    define SAFIRE_UTILS_NO_CONFIG_IMPLEMENTATION
 #  endif
-#  ifndef SAFIRE_NO_ASSERT
-#    ifndef NDEBUG
-#      include <assert.h>
-#      define SAFIRE_ASSERT(_x, _message) assert(_x && _message)
-#      define SAFIRE_ASSERT2(_x, _y, _message) assert(_x && _y && _message)
-#      define SAFIRE_ASSERT3(_x, _y, _z, _message) assert(_x && _y && _z && _message)
-#      define SAFIRE_ASSERT4(_x, _y, _z, _w, _message) assert(_x && _y && _z && _w &&_message)
-#    endif
+#  if !defined(SAFIRE_NO_ASSERT) || !defined(NDEBUG)
+#    include <assert.h>
+#    define SAFIRE_ASSERT(_x, _message) assert(_x && _message)
+#    define SAFIRE_ASSERT2(_x, _y, _message) assert(_x && _y && _message)
+#    define SAFIRE_ASSERT3(_x, _y, _z, _message) assert(_x && _y && _z && _message)
+#    define SAFIRE_ASSERT4(_x, _y, _z, _w, _message) assert(_x && _y && _z && _w &&_message)
 #  else
 #    define SAFIRE_ASSERT(_x, _message)
 #    define SAFIRE_ASSERT2(_x, _y, _message)
@@ -539,14 +537,28 @@ void sfr_config_read(SFR_config_t* _config, const char* _path) {
             switch (line[i]) {
             // pushing the line's data
             case '\0': {
-                push[j] = '\0';
-                _config->data[k].value = sfr_str(push);
+                if (j > 0) {
+                    push[j] = '\0';
+                    _config->data[k].value = sfr_str(push);
+                } else {
+                    if (dest > 0) {
+                        sfr_str_free(&_config->data[k].name);
+                    }
+                    SFR_LIST_pop(SFR_config_data_t, _config->data, _config->size);
+                }
                 next_line = true;
                 break;
             }
             case '\n': {
-                push[j] = '\0';
-                _config->data[k].value = sfr_str(push);
+                if (j > 0) {
+                    push[j] = '\0';
+                    _config->data[k].value = sfr_str(push);
+                } else {
+                    if (dest > 0) {
+                        sfr_str_free(&_config->data[k].name);
+                    }
+                    SFR_LIST_pop(SFR_config_data_t, _config->data, _config->size);
+                }
                 next_line = true;
                 break;
             }
@@ -555,8 +567,10 @@ void sfr_config_read(SFR_config_t* _config, const char* _path) {
                 if (settings.use_names) {
                     SAFIRE_ASSERT(dest == 0, "failed to parse line for some reason");
                 }
-                push[j] = '\0';
-                _config->data[k].name = sfr_str(push);
+                if (j > 0) {
+                    push[j] = '\0';
+                    _config->data[k].name = sfr_str(push);
+                }
                 dest++;
                 j = 0;
             }
@@ -578,6 +592,12 @@ void sfr_config_read(SFR_config_t* _config, const char* _path) {
                     }
                 } else {
                     // don't add this data to the config if name has not been pushed
+                    if (_config->data[k].name != NULL) {
+                        sfr_str_free(&_config->data[k].name);
+                    }
+                    if (_config->data[k].value != NULL) {
+                        sfr_str_free(&_config->data[k].value);
+                    }
                     SFR_LIST_pop(SFR_config_data_t, _config->data, _config->size);
                 }
                 next_line = true;
@@ -586,13 +606,14 @@ void sfr_config_read(SFR_config_t* _config, const char* _path) {
             }
 
             if (next_line) {
-                memset(line, '\0', SFR_MAX_STACK_LINE_LENGTH);
                 break;
             } else {
                 push[j] = line[i];
                 j++;
             }
         }
+
+        memset(line, '\0', SFR_MAX_STACK_LINE_LENGTH);
     }
     
 }
@@ -729,6 +750,9 @@ void sfr_config_print(SFR_config_t* _config) {
 
 /*
     version history
+        0.06    (02-03-2022) fixed bug when the config parsed a line with only a \n where it would create an empty element and not remove it
+                             updated README.md
+                             added the config's optional extern functions instead of using the static inline functions (in .c)
         0.05    (01-03-2022) finished the config data structure
                              added the config string to number functions (char* -> float, int, uint32_t, ...)
                              moved the static generic functions to be above all the static inline/extern functions
