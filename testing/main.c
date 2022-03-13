@@ -57,8 +57,12 @@ void list_test() {
         printf("%u\n", list2[i]);
     }
 
+
     SFR_LIST_free(list, list_size);
     SFR_LIST_free(list2, list2_size);
+
+    uint32_t rand32 = sfr_rand_int32();
+    printf("%u", rand32);
 }
 
 void config_test() {
