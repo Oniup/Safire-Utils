@@ -1,4 +1,4 @@
-/* Safire Utils 0.07
+/* Safire Utils 0.08
 
 To use the library, define this before including the file or 
 as a preprocessor:
@@ -37,14 +37,11 @@ what to include through the following macros:
 Note, if you want to include all the utilities but not just a couple, then add the desired macro to not include:
    SAFIRE_UTILS_NO_STRING_IMPLEMENTATION
    SAFIRE_UTILS_NO_LIST_IMPLEMENTATION
-   SAFIRE_UTILS_NO_HASH_IMPLEMENTATION
-   SAFIRE_UTILS_NO_CONFIG_IMPLEMENTATION
-
-
+   SAFIRE_UTILS_NO_..._IMPLEMENTATION
 */
 
-#ifndef __SFR_UTILS_H__
-#define __SFR_UTILS_H__
+#ifndef __SAFIRE_UTILS_H__
+#define __SAFIRE_UTILS_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,6 +54,7 @@ extern "C" {
 #  define SAFIRE_UTILS_HASH_IMPLEMENTATION
 #  define SAFIRE_UTILS_RANDOM_IMPLEMENTATION
 #  define SAFIRE_UTILS_CONFIG_IMPLEMENTATION
+#  define SAFIRE_UTILS_SORT_IMPLEMENTATION
 #  if !defined(SAFIRE_UTILS_IMPLEMENTATION_EXTERN)
 #   define SAFIRE_UTILS_INLINE
 #   define SAFIRE_DEF static inline
@@ -217,6 +215,13 @@ extern "C" {
    memcpy(_list + temp1_size, temp2, sizeof(_Ty) * temp2_size);\
 }\
 
+#define SFR_LIST_swap_element(_Ty, _list, _a, _b) {\
+   SAFIRE_ASSERT(_list, "failed to swap a and b as the list has no memory allocated to it");\
+   _Ty temp  = _list[_a];\
+   _list[_a] = _list[_b];\
+   _list[_b] = temp;\
+}\
+
 /*!
  * @brief frees the buffer
  * @param[in] _list (_Ty*) the buffer that is storing the list
@@ -241,6 +246,109 @@ extern "C" {
 
 #endif // SAFIRE_UTILS_NO_HASH_IMPLEMENTATION
 #endif // SAFIRE_UTILS_HASH_IMPLEMENTATION
+
+#if defined(SAFIRE_UTILS_SORT_IMPLEMENTATION)
+#ifndef SAFIRE_UTILS_NO_SORT_IMPLEMENTATION
+
+SAFIRE_DEF void sfr_quick_sort(int* _list, uint32_t _size);
+SAFIRE_DEF void sfr_quick_sort_uint32(uint32_t* _list, uint32_t _size);
+SAFIRE_DEF void sfr_quick_sort_uint64(uint64_t* _list, uint32_t _size);
+SAFIRE_DEF void sfr_quick_sort_float(float* _list, uint32_t _size);
+SAFIRE_DEF void sfr_quick_sort_double(double* _list, uint32_t _size);
+
+#if defined(SAFIRE_UTILS_INLINE)
+
+static inline int sfr_quick_sort_partion(int* _list, int _lower, int _higher);
+static inline void sfr_quick_sort_main(int* _list, int _lower, int _higher);
+static inline int sfr_quick_sort_partion_uint32(uint32_t* _list, int _lower, int _higher);
+static inline void sfr_quick_sort_main_uint32(uint32_t* _list, int _lower, int _higher);
+static inline int sfr_quick_sort_partion_uint64(uint64_t* _list, int _lower, int _higher);
+static inline void sfr_quick_sort_main_uint64(uint64_t* _list, int _lower, int _higher);
+
+int sfr_quick_sort_partion(int* _list, int _lower, int _higher) {
+   int pivot = _list[_higher];
+   int i = (_lower - 1);
+   for (int j = _lower; j < _higher; j++) {
+      if (_list[j] < pivot) {
+         i++;
+         SFR_LIST_swap_element(int, _list, j, i);
+      }
+   }
+   i++;
+   SFR_LIST_swap_element(int, _list, i, _higher);
+   return i;
+}
+
+void sfr_quick_sort_main(int* _list, int _lower, int _higher) {
+   if (_lower < _higher) {
+      int pi = sfr_quick_sort_partion(_list, _lower, _higher);
+
+      sfr_quick_sort_main(_list, _lower, pi - 1);
+      sfr_quick_sort_main(_list, pi + 1, _higher);
+   }
+}
+
+void sfr_quick_sort(int* _list, uint32_t _size) {
+   sfr_quick_sort_main(_list, 0, (int)(_size - 1));
+}
+
+int sfr_quick_sort_partion_uint32(uint32_t* _list, int _lower, int _higher) {
+   uint32_t pivot = _list[_higher];
+   int i = (_lower - 1);
+   for (int j = _lower; j < _higher; j++) {
+      if (_list[j] < pivot) {
+         i++;
+         SFR_LIST_swap_element(uint32_t, _list, j, i);
+      }
+   }
+   i++;
+   SFR_LIST_swap_element(uint32_t, _list, i, _higher);
+   return i;
+}
+
+void sfr_quick_sort_main_uint32(uint32_t* _list, int _lower, int _higher) {
+   if (_lower < _higher) {
+      int pi = sfr_quick_sort_partion_uint32(_list, _lower, _higher);
+
+      sfr_quick_sort_main_uint32(_list, _lower, pi - 1);
+      sfr_quick_sort_main_uint32(_list, pi + 1, _higher);
+   }
+}
+
+void sfr_quick_sort_uint32(uint32_t* _list, uint32_t _size) {
+   sfr_quick_sort_main_uint32(_list, 0, (int)(_size - 1));
+}
+
+int sfr_quick_sort_partion_uint64(uint64_t* _list, int _lower, int _higher) {
+   uint64_t pivot = _list[_higher];
+   int i = (_lower - 1);
+   for (int j = _lower; j < _higher; j++) {
+      if (_list[j] < pivot) {
+         i++;
+         SFR_LIST_swap_element(uint64_t, _list, j, i);
+      }
+   }
+   i++;
+   SFR_LIST_swap_element(uint64_t, _list, i, _higher);
+   return i;
+}
+
+void sfr_quick_sort_main_uint64(uint64_t* _list, int _lower, int _higher) {
+   if (_lower < _higher) {
+      int pi = sfr_quick_sort_partion_uint64(_list, _lower, _higher);
+
+      sfr_quick_sort_main_uint64(_list, _lower, pi - 1);
+      sfr_quick_sort_main_uint64(_list, pi + 1, _higher);
+   }
+}
+SAFIRE_DEF void sfr_quick_sort_uint64(uint64_t* _list, uint32_t _size) {
+   sfr_quick_sort_main_uint64(_list, 0, (int)(_size - 1));
+}
+
+
+#endif // SAFIRE_UTILS_INLINE
+#endif // SAFIRE_UTILS_NO_SORT_IMPLEMENTATION
+#endif // SAFIRE_UTILS_SORT_IMPLEMENTATION
 
 #if defined(SAFIRE_UTILS_STRING_IMPLEMENTATION) 
 #ifndef SAFIRE_UTILS_NO_STRING_IMPLEMENTATION
@@ -801,10 +909,11 @@ uint64_t sfr_rand_uint64() {
 #ifdef __cplusplus
 }
 #endif
-#endif // __SFR_UTILS_H__
+#endif // __SAFIRE_UTILS_H__
 
 /*
    version history
+      0.08   (14-03-2022) added quick sorting algorthim for the following data types: int, uint32, uint64
       0.07   (13-03-2022) added random number generator functions
                           added the number generator functions to the source code
                           formated the tabs spaces to be 3 spaces instead of 4 so there is more code on the screen
